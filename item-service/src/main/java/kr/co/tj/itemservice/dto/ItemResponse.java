@@ -16,12 +16,13 @@ public class ItemResponse implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	private Long id;
-
 	private String artist;
 
 	private String title;
 	
 	private String itemDescribe;
+	
+	private String filePath;
 	
 	private Long price;
 	

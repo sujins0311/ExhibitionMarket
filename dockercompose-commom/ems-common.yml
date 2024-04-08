@@ -1,0 +1,89 @@
+version: '3'
+services:
+
+  ems-rabbitmq:
+    container_name: ems-rabbitmq
+    image: rabbitmq:management
+    networks:
+      - ems-network
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+      - "15671:15671"
+      - "5671:5671"
+      - "4369:4369"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  ems-config-service:
+    container_name: ems-config-service
+    image: sujins705/ems-config-service:1.0
+    networks:
+      - ems-network
+    volumes:
+      - ems-config_logs:/usr/local/tomcat/logs/
+    ports:
+      - "8888:8888"
+    environment:
+      - spring.rabbitmq.host=ems-rabbitmq
+    depends_on:
+      - ems-rabbitmq
+
+  ems-discovery-service:
+    container_name: ems-discovery-service
+    image: sujins705/ems-discovery-service:1.0
+    networks:
+      - ems-network
+    volumes:
+      - ems-discovery_logs:/usr/local/tomcat/logs/
+    ports:
+      - "8761:8761"
+    environment:
+      - spring.rabbitmq.host=ems-rabbitmq
+    depends_on:
+      - ems-rabbitmq
+      - ems-config-service
+
+  ems-apigateway-service:
+    container_name: ems-apigateway-service
+    image: sujins705/ems-apigateway-service:1.0
+    networks:
+      - ems-network
+    volumes:
+      - ems-apigateway_logs:/usr/local/tomcat/logs/
+    ports:
+      - "8000:8000"
+    environment:
+      - spring.rabbitmq.host=ems-rabbitmq
+      - eureka.client.serviceUrl.defaultZone=http://ems-discovery-service:8761/eureka
+      - spring.cloud.config.uri=http://ems-config-service:8888
+    depends_on:
+      - ems-rabbitmq
+      - ems-config-service
+      - ems-discovery-service
+
+volumes:
+  ems-config_logs:
+    driver: local
+    driver_opts:
+      type: none
+      device: Q:/logs/ems-config-service
+      o: bind
+  ems-discovery_logs:
+    driver: local
+    driver_opts:
+      type: none
+      device: Q:/logs/ems-discovery-service
+      o: bind
+  ems-apigateway_logs:
+    driver: local
+    driver_opts:
+      type: none
+      device: Q:/logs/ems-apigateway-service
+      o: bind
+
+networks:
+  ems-network:
+    external: true
+    name: ems-network

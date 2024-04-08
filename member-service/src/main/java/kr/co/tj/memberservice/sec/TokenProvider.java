@@ -1,6 +1,8 @@
 package kr.co.tj.memberservice.sec;
 
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +18,7 @@ import kr.co.tj.memberservice.dto.MemberEntity;
 @Component
 public class TokenProvider {
 	
-	// bootstrap.yml에 SECRETE_KEY입력한 값을 가져오기 위한 작업
+	// bootstrap.yml에 SECRET_KEY입력한 값을 가져오기 위한 작업
 	private Environment env;
 	
 	@Autowired
@@ -36,18 +38,19 @@ public class TokenProvider {
 		long now = System.currentTimeMillis();		
 		Date today = new Date(now); //현재시간
 		
-		Date exireDate = new Date(now + 1000 * 1 * 60 * 60 * 24); // 24시간
-		//Date expire = Date.from(Instant.now().plus(1, ChronoUnit.HOURS)); 현재시간으로 부터 1시간 후
+		//Date exireDate = new Date(now + 1000 * 1 * 60 * 60 * 24); // 24시간
+		Date expire = Date.from(Instant.now().plus(1, ChronoUnit.HOURS)); //현재시간으로 부터 1시간 후
 
 		
 		
 		//토큰을 생성하면서 아래의 정보를 빌드함
 		return Jwts.builder() 
-				.signWith(SignatureAlgorithm.HS512, env.getProperty("data.SECRETE_KEY"))//서명을 추가
+				.signWith(SignatureAlgorithm.HS512, env.getProperty("data.SECRET_KEY"))//서명을 추가
 				.setSubject(memberEntity.getUsername()) //이름
 				.setIssuer("member-service") //발급자
 				.setIssuedAt(today) //발생일
-				.setExpiration(exireDate) //토큰의 만료일
+				//.setExpiration(exireDate) //토큰의 만료일
+				.setExpiration(expire)
 				//.claim("authority", "ROLE_ADMIN")
 				.claim("authority",memberEntity.getRole()) //로그인시 권한
 				.compact();
@@ -71,7 +74,7 @@ public class TokenProvider {
 
 // *** 토큰과 서명
 //JWT는 헤더(Header), 페이로드(Payload), 서명(Signature)으로 구성
-//.signWith(SignatureAlgorithm.HS512, SECRETE_KEY) // JWT 토큰에 SignatureAlgorithm.HS512알고리즘을 사용하여 서명을 추가
+//.signWith(SignatureAlgorithm.HS512, SECRET_KEY) // JWT 토큰에 SignatureAlgorithm.HS512알고리즘을 사용하여 서명을 추가
 //서명은 헤더와 페이로드를 조합하여 암호화하여 생성되며, 이를 통해 토큰의 무결성을 보장
 //SignatureAlgorithm.HS512는 HMAC-SHA512 알고리즘을 사용하여 서명을 생성하고 검증하는 대칭키 알고리즘
 //SECRET_KEY는 토큰 서명에 사용되는 비밀키(서버와 클라이언트가 동일한 값을 가져야함_ 서명의 무결성을 위해 안전하게 보관되어야함)
@@ -79,7 +82,7 @@ public class TokenProvider {
 //member-service 실행(bootstrap.yml이 이전에 실행됨) -> 로그인 -> 토큰발행(bootstrap.yml의 config서버의 시크릿키 가져오기 동작을 수행함)
 
 
-//1. 클라이언트 [로그인 , 인증 요청] -> 서버 [클라이언트의 신원확인 후 토큰생성] 서버는 비밀 키(SECRETE_KEY)를 사용해 토큰에 서명
+//1. 클라이언트 [로그인 , 인증 요청] -> 서버 [클라이언트의 신원확인 후 토큰생성] 서버는 비밀 키(SECRET_KEY를 사용해 토큰에 서명
 //2. 서버 [토큰전달(응답)] -> 클라이언트 [투큰수신]
 //3. 클라이언트 [요청](헤더나 쿠키를 통해) -> 서버[수신] 비밀키를 통해검증 및 유효성 확인 후 필요한 권한 및 인증 정보를 추출하여 요청을 처리
 

@@ -98,7 +98,7 @@ public class MemberController {
 	}
 
 	// 비밀번호 수정
-	@PutMapping("member/updatePasswd")
+	@PutMapping("member/updatePasswd/{username}")
 	public ResponseEntity<?> updatePasswd(@RequestBody MemberUpdatePasswdRequest updatePasswdRequest) {
 		Map<String, Object> map = new HashMap<>();
 
@@ -211,7 +211,7 @@ public class MemberController {
 	}
 
 	// 회원정보 자세히보기
-	@GetMapping("/name/{username}")
+	@GetMapping("/member/name/{username}")
 	public ResponseEntity<?> findByUsername(@PathVariable("username") String username) {
 		Map<String, Object> map = new HashMap<>();
 
@@ -236,6 +236,8 @@ public class MemberController {
 	@PostMapping("all/login")
 	public ResponseEntity<?> login(@RequestBody MemberLoginRequest memberLoginRequest) {
 		Map<String, Object> map = new HashMap<>();
+		
+		System.out.println("11111로그인 입력값이 잘 들어왔나?:"+memberLoginRequest);
 
 		if (memberLoginRequest.getUsername() == null || memberLoginRequest.getUsername().isEmpty()) {
 			map.put("result", "id를 바르게 입력하세요.");
@@ -258,6 +260,8 @@ public class MemberController {
 
 		MemberResponse memberResponse = memberDTO.toMemberResponse();
 		map.put("result", memberResponse);
+		
+		System.out.println("2222로그인 입력값이 잘 들어왔나?:"+memberResponse);
 
 		return ResponseEntity.ok().body(map);
 	}
@@ -282,9 +286,10 @@ public class MemberController {
 
 	@GetMapping("/health_check")
 	public String status() {
-		log.info("data odrders: {}", env.getProperty("data.url")); // 오더의 url 확인중
+		//log.info("data odrders: {}", env.getProperty("data.url")); // 오더의 url 확인중(오더 서비스 보류)
+		log.info("data world: {}", env.getProperty("data.test")); //kafka-test
 
-		return "member-service입니다" + env.getProperty("local.server.port");
+		return "member-service입니다" + env.getProperty("local.server.port")+":"+env.getProperty("data.test");
 
 	}
 

@@ -1,0 +1,57 @@
+spring:
+  profiles:
+    active:
+    - local
+---
+spring:
+  config:
+    activate:
+      on-profile: local #이클립스 내에서 돌릴때.
+      
+  rabbitmq:
+    host: 127.0.0.1
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+      
+  rabbitmq:
+    host: ems-rabbitmq
+      
+---
+server:
+  tomcat:
+    basedir: /usr/local/tomcat/logs/
+    accesslog:
+      enabled: true
+      directory: ${spring.application.name}
+      prefix: access_log.
+      suffix: .txt
+      #rotate: true
+      file-date-format: yy-MM-dd #yy-MM-dd.HH
+      #encoding: UTF-8
+      #max-days: -1
+      #rename-on-rotate: false
+      #buffered: false
+      #condition-if: name #ServletRequest.getAttribute("name") != null
+      #condition-unless: name #ServletRequest.getAttribute("name") == null
+      pattern: '%h %l %u [%{yy-MM-dd:HH:mm:ss}t] "%r" %s %b %D %{User-Agent}i' #'%h %l %u %t "%r" %s %b'
+  port: 8888 #config 서버의 포트번호
+  
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/sujins0311/git-repo.git
+          #uri: https://github.com/woojin598/tj705.git # Config 서버가 Git 저장소를 사용하여 구성 파일을 가져올 수 있도록 설정
+          #file:D:\workspace\tj705_workspace_emsproject\work\git-repo
+           
+  application:
+    name: ems-config-service #config 서버의 이름
+  rabbitmq:
+    port: 5672
+    username: guest
+    password: guest
