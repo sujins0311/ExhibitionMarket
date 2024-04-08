@@ -1,0 +1,29 @@
+version: '1'
+services:
+
+  ems-react: #서비스명 넣는 자리
+    image: sujins705/ems-react:3.0
+    ports:
+      - "80:80" #nginx 번호
+    container_name: ems-react
+    networks:
+      my-network:
+        ipv4_address: 172.19.0.99
+
+  ems-apigateway-service: #서비스명 넣는 자리
+    image: sujins705/ems-apigateway-service:1.0
+    ports:
+      - "8000:8000"
+    container_name: ems-apigateway-service
+    environment:
+      - spring.rabbitmq.host=ems-rabbitmq
+      - eureka.client.serviceUrl.defaultZone=http://ems-discovery-service:8761/eureka
+      - spring.cloud.config.uri=http://ems-config-service:8888
+    networks:
+      my-network:
+        ipv4_address: 172.19.0.5
+
+networks:
+  my-network:
+    external: true
+    name: ems-network

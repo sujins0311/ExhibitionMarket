@@ -1,10 +1,10 @@
-package kr.co.tj.userservice;
+package kr.co.tj.itemservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class UserServiceApplicationTests {
+class ItemServiceApplicationTests {
 
 	@Test
 	void contextLoads() {

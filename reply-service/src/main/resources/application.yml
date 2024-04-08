@@ -1,37 +1,91 @@
+spring:
+  profiles:
+    active:
+    - local
+---
+spring:
+  config:
+    activate:
+      on-profile: local #이클립스 내에서 돌릴때.
+      
+  rabbitmq:
+    host: 127.0.0.1
+
+  datasource: #  jdbc:mysql://{주소}/{db 명}
+    url: jdbc:mysql://127.0.0.1:3306/emsdata?serverTimezone=Asia/Seoul&useUnicode=true&charset=utf8
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://127.0.0.1:8761/eureka
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+      
+  rabbitmq:
+    host: ems-rabbitmq
+    
+  datasource:
+    url: jdbc:mysql://emsdata:3306/emsdata?serverTimezone=Asia/Seoul&useUnicode=true&charset=utf8
+            
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://ems-discovery-service:8761/eureka
+      
+---
 server:
-  port: 0
+  tomcat:
+    basedir: /usr/local/tomcat/logs/
+    accesslog:
+      enabled: true
+      directory: ${spring.application.name}
+      prefix: access_log.
+      suffix: .txt
+      #rotate: true
+      file-date-format: yy-MM-dd #yy-MM-dd.HH
+      #encoding: UTF-8
+      #max-days: -1
+      #rename-on-rotate: false
+      #buffered: false
+      #condition-if: name #ServletRequest.getAttribute("name") != null
+      #condition-unless: name #ServletRequest.getAttribute("name") == null
+      pattern: '%h %l %u [%{yy-MM-dd:HH:mm:ss}t] "%r" %s %b %D %{User-Agent}i' #'%h %l %u %t "%r" %s %b'
+  port: 0 # 0번 port가 아닌 사용되지 않는 port번호를 임의로 할당요청
   
 spring:
   application:
     name: reply-service
-    
-  h2:
-    console:
-      enabled: true
-      settings:
-        web-allow-others: true
-      path: /h2-console
-      
+  rabbitmq:
+    port: 5672
+    username: guest
+    password: guest
+
   jpa:
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
     hibernate:
-      naming:
-        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-      ddl-auto: create-drop
-    show-sql: true     
-    generate-ddl: true
-      
+      ddl-auto: update
+    show-sql: true
   datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:testdb
-    username: sa
-    password: 
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: sujins705
+    password: sujins705
     
 eureka:
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
-  client:
-    register-with-eureka: true
-    fetch-registry: true
-    service-url:
-      defaultZone: http://localhost:8761/eureka
+
+      
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh, health, beans, busrefresh

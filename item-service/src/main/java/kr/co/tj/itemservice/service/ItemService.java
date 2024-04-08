@@ -1,8 +1,10 @@
 package kr.co.tj.itemservice.service;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -14,7 +16,7 @@ import org.springframework.stereotype.Service;
 
 import kr.co.tj.itemservice.dto.ItemDTO;
 import kr.co.tj.itemservice.dto.ItemEntity;
-import kr.co.tj.itemservice.feign.ReplyFeign;
+import kr.co.tj.itemservice.dto.UploadFileRepository;
 import kr.co.tj.itemservice.repository.ItemRepository;
 
 import org.springframework.data.domain.Page;
@@ -29,22 +31,22 @@ public class ItemService {
 	private ItemRepository itemRepository;
 	
 	@Autowired
-	private ReplyFeign replyFeign;
+	private UploadFileRepository uploadFileRepository;
 		
 	public ItemDTO createItem(ItemDTO itemDTO) {
-	      
-        
-	      itemDTO.setCreateDate(new Date());
-	      itemDTO.setUpdateDate(new Date());
-	      
-	      ItemEntity itemEntity = itemDTO.toItemEntity();   
-	      
-	      itemEntity = itemRepository.save(itemEntity);
-	      
-	      itemDTO = ItemDTO.toItemDTO(itemEntity);
-	      
-	      return itemDTO;
-	   }
+		
+			
+		itemDTO.setCreateDate(new Date());
+		itemDTO.setUpdateDate(new Date());
+		
+		ItemEntity itemEntity = itemDTO.toItemEntity();	
+		
+		itemEntity = itemRepository.save(itemEntity);
+		
+		itemDTO = ItemDTO.toItemDTO(itemEntity);
+		
+		return itemDTO;
+	}
 	
 	@Transactional
 	public ItemDTO update(ItemDTO dto) {
@@ -113,8 +115,10 @@ public class ItemService {
 	    		  itemEntity.getTitle(), 
 	    		  itemEntity.getItemDescribe(),
 	    		  itemEntity.getPrice(),
+	    		  itemEntity.getUpdateDate(),
 	    		  itemEntity.getCreateDate(),
-	    		  itemEntity.getUpdateDate()));
+	    		  itemEntity.getBytes(),
+	    		  null));
 	      return page_dto;
 	   }
 
@@ -142,43 +146,63 @@ public class ItemService {
 		return itemRepository.findByTitle(title);
 	}
 
-	@Transactional
-	public String updateItemByTitle(ItemEntity itemEntity) {
-		
-		try {
-			ItemEntity existingItem = itemRepository.findByTitle(itemEntity.getTitle());
-			
-			if(existingItem == null) {
-				return "fail";
-			}
-			
-			existingItem.setArtist(itemEntity.getArtist());
-	        existingItem.setItemDescribe(itemEntity.getItemDescribe());
-	        existingItem.setPrice(itemEntity.getPrice());
-	        existingItem.setUpdateDate(new Date());
-	        
-	        itemRepository.save(existingItem);
-			
-			return "ok";
-		} catch (Exception e) {
-			e.printStackTrace();
-			return "fail";
-		}
-	}
+//	@Transactional
+//	public String updateItemByTitle(ItemResponse itemResponse) {
+//		
+//		try {
+//			itemRepository.save(itemResponse);
+//			
+//			return "ok";
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			return "fail";
+//		}
+//	}
 
 
 
 	public ItemDTO findById(Long id) {
-		Optional<ItemEntity> optional = itemRepository.findById(id);
+	    Optional<ItemEntity> optional = itemRepository.findById(id);
+	    if (!optional.isPresent()) {
+	        throw new RuntimeException("불러오기 실패");
+	    }
+	    ItemEntity entity = optional.get();
+	    
+	    ItemDTO itemDTO = ItemDTO.toItemDTO(entity);
+	    itemDTO.setCreateDate(entity.getCreateDate());
+	    itemDTO.setUpdateDate(entity.getUpdateDate());
+	    
+	    return itemDTO;
+	}
+	
+	public ItemDTO updateItemByTitle(ItemDTO dto) {
+	    Optional<ItemEntity> optional = uploadFileRepository.findById(dto.getId());
+	    
+	    if (optional.isPresent()) {
+	        ItemEntity entity = optional.get();
+	        entity.setId(dto.getId());
+	        entity.setArtist(dto.getArtist());
+	        entity.setTitle(dto.getTitle());
+	        entity.setItemDescribe(dto.getItemDescribe());
+	        entity.setPrice(dto.getPrice());
+	        
+	        // 수정된 부분 시작
+	        byte[] bytes = Base64.getDecoder().decode(dto.getBytes()); // Base64 디코딩
+	        entity.setBytes(bytes);
+	        // 수정된 부분 끝
+	        
+	        entity.setUpdateDate(new Date());
+	        entity = uploadFileRepository.save(entity);
+	        dto = ItemDTO.toItemDTO(entity);
+	        return dto;
+	    }
+	    
+		return dto; 
+	    
+	}
+	public void delete(Long id) {
+		itemRepository.deleteById(id);
 		
-		if(!optional.isPresent()) {
-			throw new RuntimeException("불러오기 실패");
-		}
-		
-		ItemEntity entity = optional.get();
-
-		//return new ModelMapper().map(entity, BoardDTO.class);
-		return ItemDTO.toItemDTO(entity);
 	}
 
 }

@@ -25,18 +25,21 @@ public class ItemDTO implements Serializable{
 	
 	private Long price;
 	
+	
 	private Date createDate;
 	
 	private Date updateDate;
-	
+	private byte[] bytes;
+	private String strBytes;
 	
 	public ItemEntity toItemEntity() {
 		 return ItemEntity.builder()
-				 .id(id)
+				.id(id)
 				.artist(artist)
 				.title(title)
 				.itemDescribe(itemDescribe)
 				.price(price)
+				.bytes(bytes)
 				.createDate(createDate)
 				.updateDate(updateDate)
 				.build();
@@ -45,6 +48,7 @@ public class ItemDTO implements Serializable{
 	public static ItemDTO toItemDTO(ItemRequest itemRequest) {
 		
 		   return ItemDTO.builder()
+				
 				.artist(itemRequest.getArtist())
 				.title(itemRequest.getTitle())
 				.itemDescribe(itemRequest.getItemDescribe())
@@ -74,8 +78,35 @@ public class ItemDTO implements Serializable{
 	    dto.setTitle(entity.getTitle());
 	    dto.setItemDescribe(entity.getItemDescribe());
 	    dto.setPrice(entity.getPrice());
+	    dto.setBytes(entity.getBytes());
+	    dto.setCreateDate(entity.getCreateDate());
+	    dto.setUpdateDate(entity.getUpdateDate());
 	    return dto;
 	}
 
-	
-}
+	public ItemDTO toItemDTO2(ItemEntity entity) {
+		// TODO Auto-generated method stub
+		return ItemDTO.builder()
+				.id(entity.getId())
+				.artist(entity.getArtist())
+				.title(entity.getTitle())
+				.itemDescribe(entity.getItemDescribe())
+				.price(entity.getPrice())
+				.bytes(entity.getBytes())
+				.createDate(entity.getCreateDate())
+				.updateDate(entity.getUpdateDate())
+				.build();
+	}
+
+	public ItemDTO(Long id, String artist, String title, String itemDescribe, Long price, byte[] bytes) {
+		// TODO Auto-generated constructor stub
+		this.id = id;
+        this.artist = artist;
+        this.title = title;
+        this.itemDescribe = itemDescribe;
+        this.price = price;
+        this.bytes = bytes;
+    }
+	}
+
+	 

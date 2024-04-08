@@ -13,7 +13,6 @@ import org.springframework.web.server.ServerWebExchange;
 import com.google.common.net.HttpHeaders;
 
 import io.jsonwebtoken.Jwts;
-import lombok.Data;
 import reactor.core.publisher.Mono;
 
 
@@ -22,7 +21,7 @@ import reactor.core.publisher.Mono;
 public class AuthorizationFilter extends AbstractGatewayFilterFactory<AuthorizationFilter.Config> {
 	// 스프링 클라우드 게이트웨이에서 필터를 정의함
 	
-	//private static final String SECRETE_KEY = "aaaaaaaaaaaaaa";
+	//private static final String SECRET_KEY = "aaaaaaaaaaaaaa";
 	
 	private Environment env; 
 	//객체 Environment을 주입받기 위해 인스턴스변수 선언.
@@ -89,7 +88,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 		String subject = null;
 		
 		try {
-			subject = Jwts.parser().setSigningKey(env.getProperty("data.SECRETE_KEY")) //.yaml 파일에 추가했던 시크릿키값 호출
+			subject = Jwts.parser().setSigningKey(env.getProperty("data.SECRET_KEY")) //.yaml 파일에 추가했던 시크릿키값 호출
 			.parseClaimsJws(token).getBody().getSubject();
 			
 		} catch (Exception e) {

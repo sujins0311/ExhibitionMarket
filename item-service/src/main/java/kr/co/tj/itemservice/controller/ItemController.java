@@ -1,15 +1,18 @@
 package kr.co.tj.itemservice.controller;
 
+
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
+import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,34 +24,46 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import feign.FeignException;
 import kr.co.tj.itemservice.dto.ItemDTO;
 import kr.co.tj.itemservice.dto.ItemEntity;
 import kr.co.tj.itemservice.dto.ItemRequest;
 import kr.co.tj.itemservice.dto.ItemResponse;
-import kr.co.tj.itemservice.dto.ReplyRequest;
-import kr.co.tj.itemservice.dto.ReplyResponse;
-import kr.co.tj.itemservice.feign.ReplyFeign;
+import kr.co.tj.itemservice.dto.UploadFileService;
 import kr.co.tj.itemservice.service.ItemService;
 
 @RestController
 @RequestMapping("/item-service")
 public class ItemController {
 
+//	private String saveFile(MultipartFile file) throws IOException {
+//		// 파일이 저장될 디렉토리 경로
+//		String uploadPath = UPLOAD_DIR;
+//
+//		// 파일 확장자 추출
+//		String fileExtension = FilenameUtils.getExtension(file.getOriginalFilename());
+//
+//		// 파일 이름을 유니크하게 생성 (파일명 + 현재 시간)
+//		String fileName = UUID.randomUUID().toString() + "." + fileExtension;
+//
+//		// 파일을 저장할 경로 생성
+//		String filePath = uploadPath + "/" + fileName;
+//
+//		// 파일 저장
+//		file.transferTo(new File(filePath));
+//
+//		return filePath;
+//	}
+//
+//	private static String UPLOAD_DIR = "";
+
+	@Autowired
+	private UploadFileService uploadFileService;
+
 	@Autowired
 	private Environment env;
 
 	@Autowired
-	private ReplyFeign replyFeign;
-
-	@Autowired
 	private ItemService itemService;
-
-	@Autowired
-	public ItemController(ReplyFeign replyFeign, ItemService itemService) {
-		this.replyFeign = replyFeign;
-		this.itemService = itemService;
-	}
 
 	public ItemController(ItemService itemService) {
 		this.itemService = itemService;
@@ -68,6 +83,8 @@ public class ItemController {
 			item.put("price", dto.getPrice());
 			item.put("createDate", dto.getCreateDate());
 			item.put("updateDate", dto.getUpdateDate());
+			item.put("id", dto.getId());
+			item.put("bytes", dto.getBytes());
 			result.add(item);
 		}
 
@@ -78,48 +95,132 @@ public class ItemController {
 	public ResponseEntity<?> list(int pageNum) {
 		Map<String, Object> map = new HashMap<>();
 		Page<ItemDTO> page = itemService.findAll(pageNum);
+		
+		for(ItemDTO iDto: page.getContent()) {
+		    byte[] bytes = iDto.getBytes();
+		    String strBytes = java.util.Base64.getEncoder().encodeToString(bytes);
+		    iDto.setStrBytes(strBytes);
+		}
+		
+//		for(ItemDTO iDto: page.getContent()) {
+//			System.out.println("iDto==========");
+//			byte[] bytes= iDto.getBytes();
+//			bytes = Base64.encodeBase64(bytes);
+//			String strBytes;
+//			try {
+//				strBytes = new String(bytes , "UTF-8");
+//				iDto.setStrBytes(strBytes);
+//			} catch (UnsupportedEncodingException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//			
+//		}
 		map.put("result", page);
 
 		return ResponseEntity.ok().body(map);
 	}
+	@PutMapping("/items/update/{id}")
+	public ResponseEntity<?> updateItemByTitle(MultipartHttpServletRequest mRequest, @PathVariable Long id) {
+	    Map<String, Object> map = new HashMap<>();
 
-	@PutMapping("/items/updateitem")
-	public ResponseEntity<?> updateItemByTitle(@RequestBody ItemResponse itemResponse) {
+	    if (mRequest == null || id == null) {
+	        map.put("result", "요청이 잘못되었습니다.");
+	        return ResponseEntity.badRequest().body(map);
+	    }
 
-		ItemEntity itemEntity = itemService.getItemByTitle(itemResponse.getTitle());
+	    String artist = mRequest.getParameter("artist");
+	    String title = mRequest.getParameter("title");
+	    String itemDescribe = mRequest.getParameter("itemDescribe");
+	    Long price = Long.parseLong(mRequest.getParameter("price"));
 
-		if (itemEntity == null) {
-			return ResponseEntity.status(HttpStatus.OK).body("등록되지 않은 작품이에요.");
-		}
+	    MultipartFile file1 = mRequest.getFile("file1");
 
-		String result;
+	    if (file1 == null || file1.isEmpty()) {
+	        map.put("result", "파일이 없습니다.");
+	        return ResponseEntity.badRequest().body(map);
+	    }
 
-		try {
-			// Update the fields of itemEntity with the values from itemResponse
-			itemEntity.setArtist(itemResponse.getArtist());
-			itemEntity.setItemDescribe(itemResponse.getItemDescribe());
-			itemEntity.setPrice(itemResponse.getPrice());
-			itemEntity.setUpdateDate(new Date());
+	    try {
+	        byte[] bytes = file1.getBytes();
+	        ItemDTO dto = new ItemDTO(id, artist, title, itemDescribe, price, bytes);
 
-			result = itemService.updateItemByTitle(itemEntity);
-
-			if (result.equalsIgnoreCase("ok")) {
-				return ResponseEntity.status(HttpStatus.OK).body("1:성공");
-			} else {
-				return ResponseEntity.status(HttpStatus.OK).body("0:갱신 실패");
-			}
-
-		} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.OK).body("0:갱신 실패");
-		}
-
+	        dto = uploadFileService.updateItemByTitle(dto);
+	        map.put("result", dto);
+	        return ResponseEntity.ok().body(map);
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        map.put("result", "수정 실패");
+	        return ResponseEntity.badRequest().body(map);
+	    }
 	}
+
+//	@PutMapping("/items/update/{id}")
+//	public ResponseEntity<?> updateItemByTitle(@RequestBody ItemRequest itemRequest) {
+//	    Map<String, Object> map = new HashMap<>();
+//
+//	    if (itemRequest == null ||  itemRequest.getArtist() == null || itemRequest.getTitle() == null ||
+//	    		itemRequest.getItemDescribe() == null || itemRequest.getPrice() == null || itemRequest.getBytes() == null  ) {
+//	        map.put("result", "등록되지 않은 작품이에요.");
+//	        return ResponseEntity.badRequest().body(map);
+//	    }
+//	    
+//	    ItemDTO dto = ItemDTO.toItemDTO(itemRequest);
+//
+//	    try {
+//	    	dto = uploadFileService.updateItemByTitle(dto);
+//	        map.put("result", dto);
+//	        return ResponseEntity.ok().body(map);
+//	    } catch (NoSuchElementException e) {
+//	        e.printStackTrace();
+//	        map.put("result", "해당 글이 없습니다.");
+//	        return ResponseEntity.badRequest().body(map);
+//	    }
+//	}
+
+	
+//	@PutMapping("/items/updateitem")
+//	public ResponseEntity<?> updateItemByTitle(@RequestBody ItemResponse itemResponse){
+//		Map<String, Object> map = new HashMap<>();
+//		
+//		ItemEntity itemEntity = itemService.getItemByTitle(itemResponse.getTitle());
+//		
+//		if(itemEntity == null) {
+//			return ResponseEntity.status(HttpStatus.OK).body("등록되지 않은 작품이에요.");
+//		}
+//		
+//		String result;
+//		
+//		try {
+//			result = itemService.updateItemByTitle(itemEntity);
+//			
+//			if (result.equalsIgnoreCase("ok")) {
+//				return ResponseEntity.status(HttpStatus.OK).body("1:성공");
+//			} else {
+//				return ResponseEntity.status(HttpStatus.OK).body("0:갱신 실패");
+//			}
+//			
+//		} catch (Exception e) {
+//			return ResponseEntity.status(HttpStatus.OK).body("0:갱신 실패");
+//		}
+//		
+//	}
 
 	@GetMapping("/items/all")
 	public ResponseEntity<?> findAll() {
 
 		try {
 			List<ItemDTO> list = itemService.findAll();
+			
+			for(ItemDTO iDto: list) {
+				System.out.println("iDto==========");
+				byte[] bytes= iDto.getBytes();
+				bytes = Base64.encodeBase64(bytes);
+				String strBytes = new String(bytes , "UTF-8");
+				iDto.setStrBytes(strBytes);
+			}
+			
+			
 			return ResponseEntity.ok().body(list);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -136,13 +237,19 @@ public class ItemController {
 			map.put("result", "잘못된 정보입니다.");
 			return ResponseEntity.badRequest().body(map);
 		}
-
 		try {
+			
+			
+			
 			ItemDTO dto = itemService.findById(id);
+			
+			byte[] bytes = Base64.encodeBase64(dto.getBytes());
+			
+			String strBytes = new String(bytes , "UTF-8");
+			
+			map.put("bytes", strBytes);
 			map.put("result", dto);
-
 			return ResponseEntity.ok().body(map);
-
 		} catch (Exception e) {
 			e.printStackTrace();
 			map.put("result", "가져오기에 실패");
@@ -150,29 +257,73 @@ public class ItemController {
 			return ResponseEntity.badRequest().body(map);
 		}
 
+//		List<ItemDTO> list = itemService.getListByTitle(title);
+//		
+//		List<ItemResponse> responseList = new ArrayList<>();
+//		
+//		for(ItemDTO itemDTO : list) {
+//			ItemResponse itemResponse = itemDTO.toItemResponse();
+//			responseList.add(itemResponse);
+//		}
+//		
+//		
+//		return ResponseEntity.status(HttpStatus.OK).body(responseList);
 	}
 
-	 @PostMapping("/items")
-     public ResponseEntity<?> createitem(@RequestBody ItemRequest itemRequest){
-    
-    ItemDTO itemDTO = ItemDTO.toItemDTO(itemRequest);
-    
-    itemDTO = itemService.createItem(itemDTO);
-    
-    ItemResponse itemResponse = itemDTO.toItemResponse();
-    
-    return ResponseEntity.status(HttpStatus.CREATED).body(itemResponse);
-        
-  }
+	@PostMapping("/items")
+	public ResponseEntity<?> fileUpload(MultipartHttpServletRequest mRequest) {
+	    Map<String, Object> map = new HashMap<>();
+	    
+	    
+	    String artist = mRequest.getParameter("artist");
+	    String title = mRequest.getParameter("title");
+	    String itemDescribe = mRequest.getParameter("itemDescribe");
+	    Long price = Long.parseLong(mRequest.getParameter("price"));
+	    
+	   
 
-	@DeleteMapping("")
-	public ResponseEntity<?> delete(@RequestBody ItemDTO dto) {
-		if (dto == null || dto.getTitle() == null) {
-			return ResponseEntity.badRequest().body("잘못된 정보입니다.");
-		}
+	    MultipartFile file1 = mRequest.getFile("file1");
+	    file1.getOriginalFilename();
+
+	    try {
+	        byte[] bytes = file1.getBytes();
+	        ItemEntity fileEntity = uploadFileService.uploadFile(bytes, artist, title, itemDescribe, price);
+	        fileEntity.getCreateDate();
+	        
+	        map.put("id", fileEntity.getId());
+	        map.put("result", "ok");
+	        return ResponseEntity.ok().body(map);
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return ResponseEntity.badRequest().body(map);
+	    }
+	}
+//	@PostMapping("/items")
+//	public ResponseEntity<?> createitem(@RequestParam("file") MultipartFile file, @RequestBody ItemRequest itemRequest) {
+//	    // 이미지 업로드 처리 로직을 추가합니다.
+//	    try {
+//	        // 파일을 서버에 저장하고 파일 경로를 얻어옵니다.
+//	        String filePath = saveFile(file);
+//	        itemRequest.setFilePath(filePath); // ItemRequest에 파일 경로를 설정합니다.
+//	    } catch (IOException e) {
+//	        e.printStackTrace();
+//	        return ResponseEntity.badRequest().body("이미지 업로드 실패");
+//	    }
+//
+//	    ItemDTO itemDTO = ItemDTO.toItemDTO(itemRequest);
+//
+//	    itemDTO = itemService.createItem(itemDTO);
+//
+//	    ItemResponse itemResponse = itemDTO.toItemResponse();
+//
+//	    return ResponseEntity.status(HttpStatus.CREATED).body(itemResponse);
+//	}
+
+	@DeleteMapping("/items/{id}")
+	public ResponseEntity<?> delete(@PathVariable("id") Long id) {
 
 		try {
-			itemService.delete(dto.getTitle());
+			itemService.delete(id);
 			return ResponseEntity.ok().body("삭제 성공");
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -183,93 +334,6 @@ public class ItemController {
 	@GetMapping("/health_check")
 	public String status() {
 		return "item service입니다" + env.getProperty("local.server.port") + env.getProperty("data.test");
-	}
-
-	@PostMapping("/items/{id}/reply") // 댓글작성
-	public ResponseEntity<?> createReply(@PathVariable("id") Long itemId, @RequestBody ReplyRequest replyRequest) {
-		Map<String, Object> response = new HashMap<>();
-
-		try {
-			// Item 서비스에서 아이템 조회
-			ItemDTO itemDTO = itemService.findById(itemId); // 아이템이 존재하는 경우
-			// Reply 서비스로 댓글 작성 요청
-			ResponseEntity<?> replyResponse = replyFeign.insert(replyRequest);
-			if (replyResponse.getStatusCode().is2xxSuccessful()) {
-				response.put("message", "댓글이 작성되었습니다.");
-				return ResponseEntity.ok(response);
-			} else {
-				response.put("message", "댓글 작성에 실패했습니다.");
-				return ResponseEntity.badRequest().body(response);
-			}
-		} catch (RuntimeException e) {
-			response.put("message", "아이템을 찾을 수 없습니다."); // 아이템이 존재하지 않을 경우
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-		} catch (Exception e) {
-			response.put("message", "댓글 작성 중 오류가 발생했습니다.");
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-		}
-	}
-
-	@PutMapping("/items/{id}/reply/{replyId}") // 댓글 수정
-	public ResponseEntity<?> updateReply(@PathVariable("id") Long itemId, @PathVariable("replyId") Long replyId,
-			@RequestBody ReplyRequest replyRequest) {
-		Map<String, Object> response = new HashMap<>();
-
-		try {
-			// Item 서비스에서 아이템 조회
-			ItemDTO itemDTO = itemService.findById(itemId); // 아이템이 존재하는 경우
-			// Reply 서비스로 댓글 수정 요청
-			ReplyResponse replyResponse = ReplyResponse.builder().id(replyId).bid(itemId)
-					.username(replyRequest.getUsername()).comment(replyRequest.getComment()).build();
-			ResponseEntity<?> replyUpdateResponse = replyFeign.update(replyRequest.getUsername(), replyResponse);
-			if (replyUpdateResponse.getStatusCode().is2xxSuccessful()) {
-				response.put("message", "댓글이 수정되었습니다.");
-				return ResponseEntity.ok(response);
-			} else {
-				response.put("message", "댓글 수정에 실패했습니다.");
-				return ResponseEntity.badRequest().body(response);
-			}
-		} catch (RuntimeException e) {
-			response.put("message", "아이템을 찾을 수 없습니다."); // 아이템이 존재하지 않을 경우
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-		} catch (Exception e) {
-			response.put("message", "댓글 수정 중 오류가 발생했습니다.");
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-		}
-	}
-
-	@DeleteMapping("/items/{id}/reply/{replyId}") // 댓글 삭제
-	public ResponseEntity<?> deleteReply(@PathVariable("id") Long itemId, @PathVariable("replyId") Long replyId) {
-		Map<String, Object> response = new HashMap<>();
-
-		try {
-			// Item 서비스에서 아이템 조회
-			ItemDTO itemDTO = itemService.findById(itemId); // 아이템이 존재하는 경우
-			if (itemDTO == null) {
-				response.put("message", "아이템을 찾을 수 없습니다.");
-				return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-			}
-			
-			System.out.println("::::::::::::::::::::::::::::::::::::::::::::::::::::::::");
-			// Reply 서비스로 댓글 삭제 요청
-			ResponseEntity<String> replyDeleteResponse = replyFeign.delete(replyId);
-			System.out.println("******************************************************"+replyDeleteResponse);
-			if (replyDeleteResponse.getStatusCode().is2xxSuccessful()) {
-				response.put("message", "댓글이 삭제되었습니다.");
-				return ResponseEntity.ok(response);
-			} else {
-				response.put("message", "댓글 삭제에 실패했습니다.");
-				return ResponseEntity.status(replyDeleteResponse.getStatusCode()).body(response);
-			}
-		} catch (FeignException.NotFound e) {
-			e.printStackTrace();
-			response.put("message", "댓글을 찾을 수 없습니다.");
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-		} catch (Exception e) {
-			e.printStackTrace();
-			response.put("message", "댓글 삭제 중 오류가 발생했습니다.");
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-		}
 	}
 
 }

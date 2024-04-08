@@ -39,6 +39,8 @@ public class ReplyController {
 	         return ResponseEntity.badRequest().body(map);
 	      }
 	      
+	      
+	      
 	      try {
 	         ReplyDTO dto = replyService.findById(id);
 	         map.put("result", dto);

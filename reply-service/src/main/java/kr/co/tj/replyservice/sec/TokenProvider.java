@@ -12,7 +12,7 @@ import kr.co.tj.replyservice.dto.ReplyEntity;
 @Component
 public class TokenProvider {
 	
-	private static final String SECRETE_KEY = "aaaaaaaaaaaaaa";
+	private static final String SECRET_KEY = "aaaaaaaaaaaaaa";
 	
 	public String create(ReplyEntity replyEntity) {
 		long now = System.currentTimeMillis(); 
@@ -21,7 +21,7 @@ public class TokenProvider {
 		Date exireDate = new Date(now + 1000 * 1 * 60 * 60 * 24); 
 
 		return Jwts.builder()
-				.signWith(SignatureAlgorithm.HS512, SECRETE_KEY)
+				.signWith(SignatureAlgorithm.HS512, SECRET_KEY)
 				.setSubject(replyEntity.getUsername())
 				.claim("role", replyEntity.getRole())
 				.setIssuer("reply-service")

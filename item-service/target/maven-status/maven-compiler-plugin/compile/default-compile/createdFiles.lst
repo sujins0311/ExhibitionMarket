@@ -1,0 +1,14 @@
+kr\co\tj\itemservice\repository\ItemRepository.class
+kr\co\tj\itemservice\service\ItemService.class
+kr\co\tj\itemservice\dto\ItemRequest$ItemRequestBuilder.class
+kr\co\tj\itemservice\dto\UploadFileRepository.class
+kr\co\tj\itemservice\dto\ItemEntity$ItemEntityBuilder.class
+kr\co\tj\itemservice\dto\ItemDTO.class
+kr\co\tj\itemservice\ItemServiceApplication.class
+kr\co\tj\itemservice\dto\ItemRequest.class
+kr\co\tj\itemservice\dto\ItemResponse$ItemResponseBuilder.class
+kr\co\tj\itemservice\dto\UploadFileService.class
+kr\co\tj\itemservice\dto\ItemResponse.class
+kr\co\tj\itemservice\dto\ItemDTO$ItemDTOBuilder.class
+kr\co\tj\itemservice\controller\ItemController.class
+kr\co\tj\itemservice\dto\ItemEntity.class
