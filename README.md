@@ -5,6 +5,8 @@ This app is for studying Spring Boot and MSA, and it serves as a Product/Comment
 <br>
 
 
+
+
 ### 🌈 개요 및 목적
 
 우리 프로젝트는 "그림 전시 판매 도네이션 플랫폼"으로써, 예술과 문화를 소통하고 공유하는 공간을 만들어 나갑니다. <br>
@@ -84,6 +86,13 @@ MSA아키텍처를 적용하여 각 기능을 독립적인 서비스로 구현�
 |  | POST | reply-service/replys | 댓글작성 | YES | USER,ADMIN |
 |  | DELETE | reply-service/replys/{id} | 댓글삭제 | YES | USER,ADMIN |
 
+<br>
+
+### 🧲DB ERD
+
+![image](https://github.com/sujins0311/ExhibitionMarket/assets/122525760/911c434d-085f-4c9d-8942-371d9be454be)
+
+<br>
 <br>
 
 ---
